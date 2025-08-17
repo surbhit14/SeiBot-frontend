@@ -388,6 +388,45 @@ export default function Home() {
           }
           break;
 
+        case "crypto.launchToken":
+          if (data.result?.tokenAddress && data.result?.swapAddress) {
+            addBotMessage(
+              <div className="space-y-3 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+                <div className="flex items-center space-x-2">
+                  <span className="text-2xl">🚀</span>
+                  <p className="text-lg font-semibold text-yellow-700">
+                    Token Launched Successfully!
+                  </p>
+                </div>
+                <div className="space-y-1 text-sm text-gray-700">
+                  <p>
+                    <span className="font-medium">Name:</span>{" "}
+                    {data.result.name}
+                  </p>
+                  <p>
+                    <span className="font-medium">Symbol:</span>{" "}
+                    {data.result.symbol}
+                  </p>
+                  <p>
+                    <span className="font-medium">Supply:</span>{" "}
+                    {Number(data.result.supply).toLocaleString()}
+                  </p>
+                  <p>
+                    <span className="font-medium">Price:</span>{" "}
+                    {data.result.price}
+                  </p>
+                  <p className="text-xs text-gray-500 font-mono bg-gray-100 p-2 rounded break-all">
+                    Token Address: {data.result.tokenAddress}
+                  </p>
+                  <p className="text-xs text-gray-500 font-mono bg-gray-100 p-2 rounded break-all">
+                    Swap Address: {data.result.swapAddress}
+                  </p>
+                </div>
+              </div>,
+              data.result.tokenAddress,
+            );
+          }
+          break;
         case "wallet.balance":
           if (data.result?.balances) {
             addBotMessage(
