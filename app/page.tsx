@@ -149,7 +149,7 @@ export default function Home() {
     try {
       const coinIdMap: { [key: string]: string } = {
         SEI: "sei-network",
-        SBC: "sei-network",
+        // SBC: "sei-network",
       };
 
       const coinId = coinIdMap[symbol];
@@ -160,7 +160,7 @@ export default function Home() {
       );
       const data = await response.json();
 
-      if (symbol === "SBC") return data[coinId]?.usd / 100;
+      // if (symbol === "SBC") return data[coinId]?.usd / 100;
 
       return data[coinId]?.usd || 0;
     } catch (error) {
@@ -168,6 +168,17 @@ export default function Home() {
       return 0;
     }
   };
+
+  async function fetchTokensFromBackend() {
+    try {
+      const response = await fetch("/api/tokens"); // your backend endpoint
+      if (!response.ok) throw new Error("Failed to fetch tokens");
+      return await response.json(); // expects array like [{ symbol, contractAddress }]
+    } catch (err) {
+      console.error("Error fetching tokens from backend:", err);
+      return [];
+    }
+  }
 
   // Fetch all balances
   const fetchBalances = async () => {
@@ -190,24 +201,27 @@ export default function Home() {
         value: `$${seiValue.toFixed(2)}`,
       });
 
-      // for (const token of SEI_TESTNET_CONFIG.tokens) {
-      //   try {
-      //     const tokenBalance = await fetchTokenBalance(address, token.contractAddress);
-      //     const tokenPrice = await fetchTokenPrice(token.symbol);
-      //     const tokenValue = parseFloat(tokenBalance) * tokenPrice;
+      const tokens = await fetchTokensFromBackend();
+      console.log("tokens ", tokens.data);
 
-      //     if (parseFloat(tokenBalance) > 0) {
-      //       newBalances.push({
-      //         symbol: token.symbol,
-      //         amount: tokenBalance,
-      //         value: `$${tokenValue.toFixed(2)}`,
-      //         contractAddress: token.contractAddress
-      //       });
-      //     }
-      //   } catch (error) {
-      //     console.error(`Error fetching ${token.symbol} balance:`, error);
-      //   }
-      // }
+      for (const token of tokens.data) {
+        try {
+          const tokenBalance = await fetchTokenBalance(address, token.address);
+          const tokenPrice = token.priceInSei * seiPrice;
+          const tokenValue = parseFloat(tokenBalance) * tokenPrice;
+
+          if (parseFloat(tokenBalance) > 0) {
+            newBalances.push({
+              symbol: token.symbol,
+              amount: tokenBalance,
+              value: `$${tokenValue.toFixed(2)}`,
+              contractAddress: token.address,
+            });
+          }
+        } catch (error) {
+          console.error(`Error fetching ${token.symbol} balance:`, error);
+        }
+      }
 
       setBalances(newBalances);
       const total = newBalances.reduce((sum, balance) => {
@@ -359,35 +373,6 @@ export default function Home() {
           }
           break;
 
-        case "crypto.swap":
-          if (data.result?.hash) {
-            const fromToken = data.result.fromToken || "";
-            const toToken = data.result.toToken || "";
-            const amount = data.result.amount || "";
-
-            addBotMessage(
-              <div className="space-y-3 p-4 bg-indigo-50 border border-indigo-200 rounded-lg">
-                <div className="flex items-center space-x-2">
-                  <span className="text-2xl">🔄</span>
-                  <p className="text-lg font-semibold text-indigo-700">
-                    Swap Completed!
-                  </p>
-                </div>
-                <div className="space-y-1 text-sm text-gray-700">
-                  <p>
-                    <span className="font-medium">Swapped:</span> {amount}{" "}
-                    {fromToken} → {toToken}
-                  </p>
-                  <p className="text-xs text-gray-500 font-mono bg-gray-100 p-2 rounded break-all">
-                    TX Hash: {data.result.hash}
-                  </p>
-                </div>
-              </div>,
-              data.result.hash,
-            );
-          }
-          break;
-
         case "crypto.launchToken":
           if (data.result?.tokenAddress && data.result?.swapAddress) {
             addBotMessage(
@@ -427,6 +412,87 @@ export default function Home() {
             );
           }
           break;
+
+        case "crypto.buy":
+          if (data.result?.hash) {
+            addBotMessage(
+              <div className="space-y-3 p-4 bg-green-50 border border-green-200 rounded-lg">
+                <div className="flex items-center space-x-2">
+                  <span className="text-2xl">✅</span>
+                  <p className="text-lg font-semibold text-green-700">
+                    Buy Successful
+                  </p>
+                </div>
+                <p className="text-sm text-gray-700">
+                  Bought <b>{data.result.tokenSymbol}</b> with{" "}
+                  <b>{data.result.seiAmount}</b> SEI
+                </p>
+                <a
+                  href={`${SEI_TESTNET_CONFIG.explorerUrl}/tx/${data.result.hash}?chain=atlantic-2`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center text-blue-600 hover:text-blue-800 text-sm font-medium bg-blue-50 px-3 py-2 rounded-lg transition-colors"
+                >
+                  View Transaction
+                </a>
+              </div>,
+            );
+          }
+          break;
+
+        case "crypto.sell":
+          if (data.result?.hash) {
+            addBotMessage(
+              <div className="space-y-3 p-4 bg-red-50 border border-red-200 rounded-lg">
+                <div className="flex items-center space-x-2">
+                  <span className="text-2xl">💸</span>
+                  <p className="text-lg font-semibold text-red-700">
+                    Sell Successful
+                  </p>
+                </div>
+                <p className="text-sm text-gray-700">
+                  Sold <b>{data.result.tokenAmount}</b>{" "}
+                  <b>{data.result.tokenSymbol}</b> for SEI
+                </p>
+                <a
+                  href={`${SEI_TESTNET_CONFIG.explorerUrl}/tx/${data.result.hash}?chain=atlantic-2`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center text-blue-600 hover:text-blue-800 text-sm font-medium bg-blue-50 px-3 py-2 rounded-lg transition-colors"
+                >
+                  View Transaction
+                </a>
+              </div>,
+            );
+          }
+          break;
+
+        case "crypto.price":
+          if (data.result?.data) {
+            addBotMessage(
+              <div className="space-y-3 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                <div className="flex items-center space-x-2">
+                  <span className="text-2xl">📈</span>
+                  <p className="text-lg font-semibold text-blue-700">
+                    Token Price
+                  </p>
+                </div>
+                <div className="space-y-1 text-sm text-gray-700">
+                  <p>
+                    <span className="font-medium">Amount:</span>{" "}
+                    {data.result.data.tokenAmount}{" "}
+                    {data.result.data.tokenSymbol}
+                  </p>
+                  <p>
+                    <span className="font-medium">Price:</span>{" "}
+                    {data.result.data.priceInSEI} SEI
+                  </p>
+                </div>
+              </div>,
+            );
+          }
+          break;
+
         case "wallet.balance":
           if (data.result?.balances) {
             addBotMessage(
@@ -840,7 +906,7 @@ export default function Home() {
                 {message.transactionHash && (
                   <div className="mt-4 pt-4 border-t border-gray-200/30">
                     <a
-                      href={`${SEI_TESTNET_CONFIG.explorerUrl}/tx/${message.transactionHash}`}
+                      href={`${SEI_TESTNET_CONFIG.explorerUrl}/tx/${message.transactionHash}?chain=atlantic-2`}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="inline-flex items-center text-blue-600 hover:text-blue-800 text-sm font-medium bg-blue-50 px-3 py-2 rounded-lg transition-colors"
