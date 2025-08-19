@@ -407,6 +407,18 @@ export default function Home() {
                     Swap Address: {data.result.swapAddress}
                   </p>
                 </div>
+
+                {/* 🔗 Transaction Link */}
+                {data.result.hash && (
+                  <a
+                    href={`${SEI_TESTNET_CONFIG.explorerUrl}/tx/${data.result.hash}?chain=atlantic-2`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center text-blue-600 hover:text-blue-800 text-sm font-medium bg-blue-50 px-3 py-2 rounded-lg transition-colors"
+                  >
+                    View Transaction
+                  </a>
+                )}
               </div>,
               data.result.tokenAddress,
             );
